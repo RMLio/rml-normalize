@@ -1,0 +1,19 @@
+{
+  "name": "normalize-rml",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha $(find . -name '*.test.js')"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://git.datasciencelab.ugent.be/rml/normalize-rml"
+  },
+  "author": "Ben De Meester",
+  "devDependencies": {
+    "assert": "^1.4.1",
+    "mocha": "^4.0.1",
+    "n3": "^0.11.2"
+  }
+}
