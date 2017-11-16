@@ -53,13 +53,16 @@ function normalizeRml(store, cb) {
   store.removeTriples(triples);
   triples.forEach(function (triple) {
     const poMap = store.createBlankNode();
-    store.addTriple(triple.subject, prefixes.rr + 'predicateObjectMap', poMap);
-    const pMap = store.createBlankNode();
-    store.addTriple(poMap, prefixes.rr + 'predicateMap', pMap);
-    store.addTriple(pMap, prefixes.rr + 'constant', TERMS.a);
-    const oMap = store.createBlankNode();
-    store.addTriple(poMap, prefixes.rr + 'objectMap', oMap);
-    store.addTriple(oMap, prefixes.rr + 'constant', triple.object);
+    let tripleMaps = store.getTriples(null, prefixes.rr + 'subjectMap', triple.subject);
+    tripleMaps.forEach(function(tripleMap) {
+      store.addTriple(tripleMap.subject, prefixes.rr + 'predicateObjectMap', poMap);
+      const pMap = store.createBlankNode();
+      store.addTriple(poMap, prefixes.rr + 'predicateMap', pMap);
+      store.addTriple(pMap, prefixes.rr + 'constant', TERMS.a);
+      const oMap = store.createBlankNode();
+      store.addTriple(poMap, prefixes.rr + 'objectMap', oMap);
+      store.addTriple(oMap, prefixes.rr + 'constant', triple.object);
+    });
   });
 
   //predicate
