@@ -6,6 +6,7 @@
   "scripts": {
     "test": "mocha $(find . -name '*.test.js')"
   },
+  "bin": "bin/cli.js",
   "repository": {
     "type": "git",
     "url": "https://git.datasciencelab.ugent.be/rml/normalize-rml"
