@@ -22,7 +22,7 @@ parser.parse(inputData,
       let writer = N3.Writer({
         prefixes: prefixes
       });
-      writeNormalizeRml(store, writer);
+      writeNormalizeRml(store, writer, false);
       writer.end(function (error, result) {
         console.log(result);
       });

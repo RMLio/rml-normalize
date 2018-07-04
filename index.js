@@ -4,31 +4,39 @@ const prefixes = {
   rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
   rdfs: 'http://www.w3.org/2000/01/rdf-schema#'
 };
+
 const TERMS = {
   a: prefixes.rdf + 'type'
 };
+
+let counter = 0;
 
 /**
  * normalize RML triples in the store, by modifying the existing store, and then write them semi-pretty using the writer.
  * @param store N3.Store
  * @param writer N3.Writer
  */
-function writeNormalizeRml(store, writer) {
+function writeNormalizeRml(store, writer, useBlankNodes = true) {
   normalizeRml(store, function () {
-    let parsedBlankSubjects = {};
-    writeBlanks(store, parsedBlankSubjects);
-    let triples = store.getTriples();
-    triples.forEach(function (triple) {
-      if (parsedBlankSubjects[triple.subject]) {
-        return;
-      }
-      if (parsedBlankSubjects[triple.object]) {
-        writer.addTriple(triple.subject, triple.predicate, writer.blank(parsedBlankSubjects[triple.object]));
-        return;
-      }
-      writer.addTriple(triple);
-    });
-  });
+
+    if (useBlankNodes) {
+      let parsedBlankSubjects = {};
+      writeBlanks(store, parsedBlankSubjects);
+      let triples = store.getTriples();
+      triples.forEach(function (triple) {
+        if (parsedBlankSubjects[triple.subject]) {
+          return;
+        }
+        if (parsedBlankSubjects[triple.object]) {
+          writer.addTriple(triple.subject, triple.predicate, writer.blank(parsedBlankSubjects[triple.object]));
+          return;
+        }
+        writer.addTriple(triple);
+      });
+    } else {
+      writer.addTriples(store.getTriples());
+    }
+  }, useBlankNodes);
 }
 
 /**
@@ -36,30 +44,54 @@ function writeNormalizeRml(store, writer) {
  * @param store
  * @param cb
  */
-function normalizeRml(store, cb) {
+function normalizeRml(store, cb, useBlankNodes = true) {
   let triples;
 
   //subject
   triples = store.getTriples(null, prefixes.rr + 'subject', null);
   store.removeTriples(triples);
   triples.forEach(function (triple) {
-    const bNode = store.createBlankNode();
-    store.addTriple(triple.subject, prefixes.rr + 'subjectMap', bNode);
-    store.addTriple(bNode, prefixes.rr + 'constant', triple.object);
+    let subject;
+
+    if (useBlankNodes) {
+      subject = store.createBlankNode();
+    } else {
+      subject = _getNewIRI(triple.subject);
+    }
+
+    store.addTriple(triple.subject, prefixes.rr + 'subjectMap', subject);
+    store.addTriple(subject, prefixes.rr + 'constant', triple.object);
   });
 
   //class
   triples = store.getTriples(null, prefixes.rr + 'class', null);
   store.removeTriples(triples);
   triples.forEach(function (triple) {
-    const poMap = store.createBlankNode();
+    let poMap;
+
+    if (useBlankNodes) {
+      poMap = store.createBlankNode();
+    } else {
+      poMap = _getNewIRI(triple.subject);
+    }
+
     let tripleMaps = store.getTriples(null, prefixes.rr + 'subjectMap', triple.subject);
     tripleMaps.forEach(function(tripleMap) {
       store.addTriple(tripleMap.subject, prefixes.rr + 'predicateObjectMap', poMap);
-      const pMap = store.createBlankNode();
+
+      let pMap;
+      let oMap;
+
+      if (useBlankNodes) {
+        pMap = store.createBlankNode();
+        oMap = store.createBlankNode();
+      } else {
+        pMap = _getNewIRI(tripleMap.subject);
+        oMap = _getNewIRI(tripleMap.subject);
+      }
+
       store.addTriple(poMap, prefixes.rr + 'predicateMap', pMap);
       store.addTriple(pMap, prefixes.rr + 'constant', TERMS.a);
-      const oMap = store.createBlankNode();
       store.addTriple(poMap, prefixes.rr + 'objectMap', oMap);
       store.addTriple(oMap, prefixes.rr + 'constant', triple.object);
     });
@@ -69,7 +101,13 @@ function normalizeRml(store, cb) {
   triples = store.getTriples(null, prefixes.rr + 'predicate', null);
   store.removeTriples(triples);
   triples.forEach(function (triple) {
-    const pMap = store.createBlankNode();
+    let pMap;
+
+    if (useBlankNodes) {
+      pMap = store.createBlankNode();
+    } else {
+      pMap = _getNewIRI(triple.subject);}
+
     store.addTriple(triple.subject, prefixes.rr + 'predicateMap', pMap);
     store.addTriple(pMap, prefixes.rr + 'constant', triple.object);
   });
@@ -78,7 +116,14 @@ function normalizeRml(store, cb) {
   triples = store.getTriples(null, prefixes.rr + 'object', null);
   store.removeTriples(triples);
   triples.forEach(function (triple) {
-    const pMap = store.createBlankNode();
+    let pMap;
+
+    if (useBlankNodes) {
+      pMap = store.createBlankNode();
+    } else {
+      pMap = _getNewIRI(triple.subject);
+    }
+
     store.addTriple(triple.subject, prefixes.rr + 'objectMap', pMap);
     store.addTriple(pMap, prefixes.rr + 'constant', triple.object);
   });
@@ -209,6 +254,13 @@ function writeBlanks(store, blanks) {
     });
     blanks[triple.subject] = myBlanks;
   });
+}
+
+function _getNewIRI(baseIRI) {
+  const temp = counter;
+  counter ++;
+
+  return `${baseIRI}-${temp}`;
 }
 
 module.exports = {
